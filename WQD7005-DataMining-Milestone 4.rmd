@@ -1,0 +1,265 @@
+---
+title : "DATA MINING - Milestone 4 (Interpretation of data & Communication of Insights of data)"
+subtitle : "Student Alcohol Consumption"
+author: "Sivanesan Pillai"
+date: "May 20, 2020"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## 1. Project Introduction
+
+This is a presentation on student alcohol consumption from two group of high school students. This data are obtained from [This link here](https://www.kaggle.com/uciml/student-alcohol-consumption "Kaggle student alcohol consumption") 
+and this data are divided into two parts:
+
+* Math class Students
+* Portuguese class students
+
+Research Goals & Objective : To predict the variables that lead to alcohol consumption for these two group of students
+
+## 2. Data Variables 
+
+There are 33 columns. It has been describe in the link, but we'll just paste it here for easier reference:
+- 1.	school - student's school (binary: 'GP' - Gabriel Pereira or 'MS' - Mousinho da Silveira)
+- 2.	sex - student's sex (binary: 'F' - female or 'M' - male)
+- 3.	age - student's age (numeric: from 15 to 22)
+- 4.	address - student's home address type (binary: 'U' - urban or 'R' - rural)
+- 5.	famsize - family size (binary: 'LE3' - less or equal to 3 or 'GT3' - greater than 3)
+- 6.	Pstatus - parent's cohabitation status (binary: 'T' - living together or 'A' - apart)
+- 7.	Medu - mother's education (numeric: 0 - none, 1 - primary education (4th grade), 2 ??? 5th to 9th grade, 3 ??? secondary       education or 4 ??? higher education)
+- 8.	Fedu - father's education (numeric: 0 - none, 1 - primary education (4th grade), 2 ??? 5th to 9th grade, 3 ??? secondary       education or 4 ??? higher education)
+- 9.	Mjob - mother's job (nominal: 'teacher', 'health' care related, civil 'services' (e.g. administrative or police),         'at_home' or 'other')
+- 10.	Fjob - father's job (nominal: 'teacher', 'health' care related, civil 'services' (e.g. administrative or police),         'at_home' or 'other')
+- 11.	reason - reason to choose this school (nominal: close to 'home', school 'reputation', 'course' preference or              'other')
+- 12.	guardian - student's guardian (nominal: 'mother', 'father' or 'other')
+- 13.	traveltime - home to school travel time (numeric: 1 - <15 min., 2 - 15 to 30 min., 3 - 30 min. to 1 hour, or 4 - >1       hour)
+- 14.	studytime - weekly study time (numeric: 1 - <2 hours, 2 - 2 to 5 hours, 3 - 5 to 10 hours, or 4 - >10 hours)
+- 15.	failures - number of past class failures (numeric: n if 1<=n<3, else 4)
+- 16.	schoolsup - extra educational support (binary: yes or no)
+- 17.	famsup - family educational support (binary: yes or no)
+- 18.	paid - extra paid classes within the course subject (Math or Portuguese) (binary: yes or no)
+- 19.	activities - extra-curricular activities (binary: yes or no)
+- 20.	nursery - attended nursery school (binary: yes or no)
+- 21.	higher - wants to take higher education (binary: yes or no)
+- 22.	internet - Internet access at home (binary: yes or no)
+- 23.	romantic - with a romantic relationship (binary: yes or no)
+- 24.	famrel - quality of family relationships (numeric: from 1 - very bad to 5 - excellent)
+- 25.	freetime - free time after school (numeric: from 1 - very low to 5 - very high)
+- 26.	goout - going out with friends (numeric: from 1 - very low to 5 - very high)
+- 27.	Dalc - workday alcohol consumption (numeric: from 1 - very low to 5 - very high)
+- 28.	Walc - weekend alcohol consumption (numeric: from 1 - very low to 5 - very high)
+- 29.	health - current health status (numeric: from 1 - very bad to 5 - very good)
+- 30.	absences - number of school absences (numeric: from 0 to 93)
+      These grades are related with the course subject, Math or Portuguese:
+- 1.	G1 - first period grade (numeric: from 0 to 20)
+- 2.	G2 - second period grade (numeric: from 0 to 20)
+- 3.	G3 - final grade (numeric: from 0 to 20, output target)
+
+- Additional note: there are several students that belong to both datasets . These students can be identified by      searching for identical attributes that characterize each student, as shown in the annexed R file.
+
+
+## 3. Libraries
+```{r libs,message=FALSE,echo=FALSE}
+#install.packages('rpart')
+#install.packages('rpart')
+#install.packages('rpart.plot')
+#install.packages('ggplot2')
+#install.packages('randomForest')
+#install.packages('caret')
+#install.packages('dplyr')
+#install.packages('corrplot')
+#install.packages('lattice')
+
+library(ggplot2, quietly=TRUE)
+library(randomForest, quietly=TRUE)
+library(caret, quietly=TRUE)
+library(dplyr, quietly=TRUE)
+library(corrplot, quietly=TRUE)
+library(rpart, quietly=TRUE)
+library(purrr, quietly=TRUE)
+library(lattice, quietly=TRUE)
+library(rpart.plot, quietly=TRUE)
+
+```
+
+## 4. Loading data and understanding the dimensionality
+```{r dem, echo = TRUE}
+math_stu <- read.csv("C:/Users/Siva/Documents/Mine/UM/WQD7005/Milestone 4/Student/student-mat.csv")
+paste(c("Dimension Math students :", dim(math_stu)), collapse = " ")
+port_stu <- read.csv("C:/Users/siva/Documents/Mine/UM/WQD7005/Milestone 4/Student/student-por.csv")
+paste(c("Dimension Portuguese students :", dim(port_stu)), collapse = " ")
+```
+
+## 5. Looking at the head for each datasets
+```{r head, echo = TRUE}
+print(head(math_stu))
+print(head(port_stu))
+```
+
+## 6. Labeling for easier tracking
+```{r label, echo = TRUE}
+math_stu$subject <- "math"
+port_stu$subject <- "port"
+```
+
+## 7. Merging datasets
+As mentioned in the data desciption, there are some students belong to both group, let us combine and see the total students data.
+
+```{r merge, echo = TRUE}
+math_port_stu <- rbind(math_stu,port_stu)
+nrow_x <- nrow(math_port_stu)#subtotal off mathematic and portuguse datasets
+
+colnames(math_port_stu) <- tolower(colnames(math_port_stu)) #define all column names to lowercase
+
+non_dup_col <- c("school","sex","age","address","famsize","pstatus","medu","fedu","mjob","fjob","reason","nursery","internet") #the columns which are duplicate
+
+dup_row <- duplicated(math_port_stu[,non_dup_col]) #get the duplicated rows
+
+dup_math_port_stu <- math_port_stu[dup_row,] #duplicated students
+
+```
+
+## 7. Remove duplicate data values
+Using function call "duplicated", to merged the both mathematics and portugese student's subject column to "math_port" into temporary datasets, and delete the duplicated data after it is merged.
+
+```{r dupData, echo = TRUE}
+comb_subj <- function(duplicated){
+        
+  new_rows <- math_port_stu$school == duplicated$school &
+        math_port_stu$sex == duplicated$sex &
+        math_port_stu$age == duplicated$age &
+        math_port_stu$address == duplicated$address &
+        math_port_stu$famsize == duplicated$famsize &
+        math_port_stu$pstatus == duplicated$pstatus &
+        math_port_stu$medu == duplicated$medu &
+        math_port_stu$fedu == duplicated$fedu &
+        math_port_stu$mjob == duplicated$mjob &
+        math_port_stu$reason == duplicated$reason &
+        math_port_stu$nursery == duplicated$nursery &
+        math_port_stu$internet == duplicated$internet
+        
+        math_port_stu[new_rows,"subject"] <<- "math_port"
+}
+
+for(n in 1:nrow(dup_math_port_stu)){
+    comb_subj(dup_math_port_stu[n,])
+}
+
+dup_math_port_stu <- dup_math_port_stu[!dup_row,]
+
+math_port_stu$subject <- as.factor(math_port_stu$subject)
+
+nrow_y <-nrow(math_port_stu) #subtotal off merged mathematic and portuguse datasets
+
+non_dup_math_port_stu <- nrow_x - nrow_y # number(subtotal of mathematic and portuguse datasets) - number(subtotal of merged mathematic and portuguse datasets)
+```
+
+## 7. Exploring the data
+Starting here we are going to explore the whole data
+
+```{r explore, echo = TRUE}
+dim(math_port_stu) #dimension
+```
+
+## 8. Missing Values
+As we can see from below all the columns doesnt have any missing value, except for the column that is class related.
+
+```{r missing, echo = TRUE}
+nrow(math_port_stu) - sum(complete.cases(math_port_stu)) #finding missing values
+```
+
+## 9. Correlation
+As we can see from below all the columns doesnt have any missing value, except for the column that is class related.
+
+To understand further let's visualize the total correlation table to understand all the numeric variable relationship with each other
+
+```{r cor, echo = TRUE}
+cor <- cor((math_port_stu %>% keep(is.numeric)), use="pairwise", method="pearson")
+
+# Order the correlations by their strength.
+ord <- order(cor[1,])
+cor <- cor[ord, ord]
+print(cor)
+corrplot(cor, mar=c(0,0,0,0))
+title(main="Correlation combined_data using Pearson")
+```
+
+From the correlation plot, we can see that:
+ 
+ 1) The grades are highly correlated to each other. I think it is safe to say that we can take the average to represent all of the variable. 
+ 
+ 2) Failures also is correalted to the grades. If we want to try to predict the grades, this failure also can also be as a target since it is highly correlated to the grades. Hence we can remove it for model building.
+ 
+ 3) Daily alcohol consumption and weekend alcohol consumption also is highly correlated. Hence, we will take the total of both of these column to represent the total weekly alcohol consumption.
+ 
+
+## 10. Sample Paired T-Test
+
+```{r ttest, echo = TRUE}
+t_test <- t.test(math_port_stu$walc,math_port_stu$dalc,paired = TRUE) 
+t_test
+
+```
+
+## 11. Machine Learning
+We modelled weekend alcohol consumption (variable walc) and daily alcohol consumption (variable dalc) from the data using Random Forest
+
+```{r machineLearning, echo = TRUE}
+set.seed(3006) #Simulating random number
+
+math_port_stu_new <- sample(1:nrow(math_port_stu),size = ceiling(0.8*nrow(math_port_stu)),replace = FALSE)
+
+# i.weekend alcohol consumption (variable walc) - RAINFOREST
+math_port_stu_a_train <- math_port_stu[math_port_stu_new,]
+math_port_stu_a_test <- math_port_stu[-math_port_stu_new,]
+
+math_port_stu_a_train$walc <- as.factor(math_port_stu_a_train$walc)
+math_port_stu_a_test$walc <- as.factor(math_port_stu_a_test$walc)
+
+mtry <- sqrt(ncol(math_port_stu_a_test))
+ntree <- 1000
+ran_forest <- randomForest(walc~.,data = math_port_stu_a_train[,-c(27,31:33)],mtry=mtry,ntree=ntree)
+
+#Inference
+math_port_stu_a_rf <- predict(ran_forest,math_port_stu_a_test)
+confMatri_a <- confusionMatrix(math_port_stu_a_rf,math_port_stu_a_test$walc)
+print(confMatri_a)
+varImpPlot(ran_forest,scale=TRUE)
+
+# 2.daily alcohol consumption (variable dalc) - DESICION TREE
+math_port_stu_b_train <- math_port_stu[math_port_stu_new,]
+math_port_stu_b_test <- math_port_stu[-math_port_stu_new,]
+
+math_port_stu_b_train$dalc <- as.factor(math_port_stu_b_train$dalc)
+math_port_stu_b_test$dalc <- as.factor(math_port_stu_b_test$dalc)
+
+
+
+decision_tree <- rpart(dalc~.,data = math_port_stu_b_train[,-c(28,31:33)])
+
+#Inference
+math_port_stu_b_rf <- table(predict(decision_tree,math_port_stu_b_test))
+print(math_port_stu_b_rf)
+prp(decision_tree,faclen = 2)
+```
+
+## 12. Conclusion 
+
+Through this study I have learned that significant factors that contribute in the indulgence of teenagers in alcoholic activities and affect their academic performance in high schools. 
+
+Age, sex and home address was identified as the most significant factors in consuming alcohol by students. At the age of 15-21 they want to prove to their friends and to the society that they are no longer kids. 
+
+The home environment is also a primary socialization agent, which affects students’ life outside the school, the interest in school as well as the aspirations for the future. Home environment includes parental socio-economic status, parental education background, parental marital status and the quality of family relations, etc. Quality of family relations is one of a key factor. 
+
+Students from broken homes suffer psychological effects while in school and this affects their academic performance. 
+
+Therefore, family support is a crucial factor in determining the grades and hence, the future of children and should be kept in mind. It is also identified that those who consume high quantity of alcohol have faced more failures in their life than those who consume less quantity. 
+
+So, it can be safely concluded that alcohol consumption leads to more failures in life. And therefore, alcohol should be avoided in order to succeed in life and it is high time to handle all these which can be done with the effort of school, family and students themselves
